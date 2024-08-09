@@ -48,6 +48,7 @@ jobs:
     code-coverage:
         name: code-coverage
         runs-on: ubuntu-latest
+        continue-on-error: false
         steps:
             - name: checkout repository
               uses: actions/checkout@v4
