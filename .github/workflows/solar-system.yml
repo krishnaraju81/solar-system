@@ -32,7 +32,7 @@ jobs:
               run: npm test
 
             - name: upload unit test results
-              uses: action/upload-artifact@v3
+              uses: actions/upload-artifact@v3
               with:
                 name: Mocha-Test-Result
                 path: test-results.xml
