@@ -63,7 +63,7 @@ jobs:
             - name: check code coverage
               run: npm run coverage
 
-            - name: upload unit test results
+            - name: upload code coverage results
               uses: actions/upload-artifact@v3
               with:
                 name: code-coverage-result
