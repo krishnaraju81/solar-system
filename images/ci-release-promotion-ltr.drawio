@@ -1,0 +1,160 @@
+<mxfile host="Electron" modified="2025-10-12T15:48:13.379Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.1.2 Chrome/106.0.5249.199 Electron/21.4.3 Safari/537.36" version="21.1.2" etag="tCk6tfVLORG0k_TghM9i" type="device">
+  <diagram id="ltr-ci-release-promo" name="LTR CI/Release/Promotion">
+    <mxGraphModel dx="1194" dy="824" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="3" value="Develop CI (per PR/merge to `develop`)" style="shape=swimlane;rounded=1;swimlaneFillColor=#f8faff;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="20" y="20" width="2480" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="Commit / PR to `develop`" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="40" y="70" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="Lint / SAST / Secrets" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="250" y="70" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="Unit &amp; Component Tests" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="480" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="Contract (CDC) Tests" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="730" y="70" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="Build Image &amp; Push" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="960" y="70" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="Capture DIGEST (image@sha256:…)&#xa;+ SBOM/Provenance/Sign" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="1190" y="70" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="Ephemeral/SIT Deploy (by DIGEST)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="1500" y="70" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="BDD SMOKE (+ optional perf-smoke)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="3" vertex="1">
+          <mxGeometry x="1790" y="70" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="15" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="7" target="8" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="16" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="8" target="9" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="9" target="10" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="10" target="11" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="19" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="11" target="12" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="20" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="12" target="13" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="3" source="13" target="14" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="Develop artifacts are **snapshots**.&#xa;No prod promotion from develop." style="shape=note;whiteSpace=wrap;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="3" vertex="1">
+          <mxGeometry x="2100" y="160" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="Release CI (each commit on `release/x.y`)" style="shape=swimlane;rounded=1;swimlaneFillColor=#f8faff;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="20" y="320" width="2480" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="Create `release/x.y` (freeze: fixes/docs only)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="40" y="70" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="24" value="Lint / SAST (stricter ok)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="390" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="25" value="Unit &amp; Component" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="640" y="70" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="26" value="Contract (CDC)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="870" y="70" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="27" value="Build NEW Image &amp; Push" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="1080" y="70" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="28" value="Capture DIGEST (for this commit)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="1330" y="70" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="29" value="Preprod/Staging Deploy (by DIGEST)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="1620" y="70" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="FULL BDD / Acceptance" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="1930" y="70" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="Extended checks (soak, perf-smoke,&#xa;migration dry-run, chaos*)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="4" vertex="1">
+          <mxGeometry x="2200" y="70" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="32" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="23" target="24" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="33" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="24" target="25" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="34" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="25" target="26" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="35" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="26" target="27" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="36" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="27" target="28" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="37" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="28" target="29" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="38" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="29" target="30" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="39" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="4" source="30" target="31" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="Bug fix on release? → new commit → **repeat build &amp; full tests**" style="shape=note;whiteSpace=wrap;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="4" vertex="1">
+          <mxGeometry x="1880" y="160" width="540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="Tag &amp; Publish / Sync (Automation)" style="shape=swimlane;rounded=1;swimlaneFillColor=#f8faff;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="20" y="620" width="2480" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="Create Git tag `vX.Y.Z`&#xa;(on `release/x.y` at the exact tested commit)" style="shape=terminator;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;" parent="5" vertex="1">
+          <mxGeometry x="40" y="60" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="Do NOT rebuild.&#xa;Add image tag `:vX.Y.Z` to the SAME DIGEST" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="5" vertex="1">
+          <mxGeometry x="500" y="60" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="AUTO PR: `release/x.y` → `main` (publish)&#xa;AUTO PR: `release/x.y` → `develop` (sync)&#xa;Auto-merge after checks/approval" style="shape=process;whiteSpace=wrap;rounded=1;fillColor=#e8f4ff;strokeColor=#4a90e2;fontStyle=1;" parent="5" vertex="1">
+          <mxGeometry x="960" y="60" width="680" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="44" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="5" source="41" target="42" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="45" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="5" source="42" target="43" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="Promotion by Digest (SIT → Pre-prod → Prod)" style="shape=swimlane;rounded=1;swimlaneFillColor=#f8faff;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="20" y="860" width="2480" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="SIT Deploy (by DIGEST)&#xa;Smoke + basic e2e/contract&#xa;Verify sig/SBOM" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="6" vertex="1">
+          <mxGeometry x="40" y="60" width="360" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="47" value="Pre-prod Deploy (by DIGEST)&#xa;Full e2e/UAT + perf-smoke&#xa;Verify gates" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="6" vertex="1">
+          <mxGeometry x="430" y="60" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="48" value="Prod Progressive Deploy (by DIGEST)&#xa;Canary 10%→50%→100% with SLO gates&#xa;Single approval/CAB before prod" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="6" vertex="1">
+          <mxGeometry x="880" y="60" width="560" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="49" value="Post-deploy verification &amp; finalize&#xa;(annotate with digest, notifications)" style="shape=rectangle;whiteSpace=wrap;rounded=1;fillColor=#ffffff;strokeColor=#000000;" parent="6" vertex="1">
+          <mxGeometry x="1470" y="60" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="50" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="6" source="46" target="47" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="6" source="47" target="48" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="52" style="endArrow=block;edgeStyle=elbowEdgeStyle;rounded=0;" parent="6" source="48" target="49" edge="1">
+          <mxGeometry width="160" height="60" relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
