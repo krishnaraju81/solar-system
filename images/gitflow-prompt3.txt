@@ -1,0 +1,321 @@
+🧭 Step-by-step delivery roadmap for you and me
+Step	Deliverable	What you’ll get	Purpose
+1️⃣	High-Level Architecture Diagram	Visual of GitFlow branches, Jenkins Shared Library layers, environment flow (CAB→DEV→…→PROD)	Sets technical foundation
+2️⃣	Pipeline Stage Blueprint	Stage-by-stage map (build, scan, deploy, test, promote, rollback) for each branch type	Defines reusable pipeline logic
+3️⃣	Jenkins Shared Library Design	Structure (vars/, src/, resources/) + key functions (buildMaven(), scanNexusIQ(), etc.)	Enables modular implementation
+4️⃣	Environment Promotion Logic	How CAB→DEV→CDTEST→SIT2→SIT1→PREPROD→PROD promotions work (image immutability, rollback, approvals)	Ensures safe deployment governance
+5️⃣	Security & Compliance Layer	NexusIQ, Aqua, cosign/in-toto, Vault integration steps	Ensures DevSecOps compliance
+6️⃣	Test Automation & Regression Strategy	Framework for BDD/E2E and roadmap to automate SIT1 regression	Expands testing maturity
+7️⃣	Cutover & Rollback Plan	Detailed readiness checklist, fallback process	Guarantees safe transition
+8️⃣	Project Plan (WBS + Timeline)	Excel-style breakdown with effort in days + story points	Tracks implementation and resources
+9️⃣	Developer Enablement & Governance Assets	PR templates, changelog automation, bots, Confluence structure	Improves adoption
+
+
+
+# High‑Level Architecture — GitFlow CI/CD on Jenkins + OCP + Nexus
+
+Below is a **Mermaid** diagram you can paste into [https://mermaid.live](https://mermaid.live) or any Mermaid renderer. It shows branch flows, pipelines, gates, and environment promotions aligned to your answers.
+
+```mermaid
+flowchart TB
+  %% NODES
+  subgraph SCM[GitHub]
+    MAIN[[main]]
+    DEVBR[[develop]]
+    FEAT[[feature/*]]
+    REL[[release/*]]
+    HOT[[hotfix/*]]
+  end
+
+  subgraph Jenkins[Jenkins Controllers & JNLP Agents]
+    LIB[[Shared Library (vars/, src/, resources/)]]
+    CI[CI Templates\n(build, unit, SCA, image, scan)]
+    CD[CD Templates\n(deploy, test, promote, rollback)]
+  end
+
+  subgraph Sec[Security & Supply Chain]
+    IQ[Nexus IQ\n(SCA / Policy)]
+    AQUA[Aqua\n(Image Scan)]
+    COSIGN[cosign + in-toto\n(Signing & Attestations)]
+    SBOM[CycloneDX SBOM]
+    VAULT[HashiCorp Vault\n(secrets)]
+  end
+
+  subgraph Reg[Nexus Repository]
+    NEXUS_LIB[(Maven Artifacts)]
+    NEXUS_IMG[(OCI Images)]
+  end
+
+  subgraph OCP[OpenShift / Rancher Namespaces]
+    CAB[(CAB)]
+    DEV[(DEV)]
+    CDTEST[(CDTEST)]
+    SIT2[(SIT2)]
+    SIT1[(SIT1)]
+    PRE[(PREPROD)]
+    PROD[(PROD)]
+  end
+
+  SNOW[ServiceNow\n(Approvals & CAB)]
+  DYN[Dynatrace\n(Obs & DORA)]
+
+  %% FLOWS
+  FEAT -- commit PR --> DEVBR
+  FEAT -- CI: per-commit --> CI
+  DEVBR -- merge --> CI
+  REL -- cut from develop --> CI
+  HOT -- from main --> CI
+  MAIN -- protected --> CI
+
+  CI --> IQ
+  CI --> AQUA
+  CI --> NEXUS_LIB
+  CI --> NEXUS_IMG
+  CI --> SBOM
+  SBOM --> IQ
+  NEXUS_IMG --> COSIGN
+  CI -->|uses| LIB
+  CI --> VAULT
+  CD --> VAULT
+  CI --> DYN
+
+  %% DEPLOYS (lower envs)
+  NEXUS_IMG -.signed+attested.-> CAB
+  CAB -->|smoke| CI
+  DEVBR -->|post-merge pipeline| CD
+  CD --> DEV
+  DEV -->|service BDD| CD
+  CD -->|on success| CDTEST
+  CDTEST -->|E2E functional (sched/manual)| CD
+  CD -->|promote same digest| SIT2
+
+  %% DEPLOYS (RTL envs via release/*)
+  REL --> CD
+  CD --> SIT1
+  SIT1 -->|manual regression| CD
+  CD --> PRE
+  PRE -->|NFR: perf/sec/chaos*| CD
+  SNOW <-. change & approval .-> CD
+  CD -->|manual promote after approval| PROD
+
+  %% OBS & POLICY
+  OCP -.admission policies (Kyverno/OPA).-> COSIGN
+  OCP --> DYN
+
+  classDef env fill:#eef,stroke:#88f,stroke-width:1px;
+  class CAB,DEV,CDTEST,SIT2,SIT1,PRE,PROD env;
+```
+
+---
+
+## Legend & Notes
+
+* **Shared Library** drives all pipelines; services only keep thin Jenkinsfiles that call library APIs.
+* **Immutable promotion**: the **same signed image digest** is promoted across CAB→DEV→CDTEST→SIT2 and REL→SIT1→PREPROD→PROD.
+* **Security gates** per stage: NexusIQ (SCA policies), Aqua (image CVEs/misconfig), SBOM (CycloneDX) generation, and **cosign + in‑toto** signing/attestation.
+* **Secrets**: Jenkins fetches ephemeral creds from **Vault**.
+* **Governance**: PROD requires **ServiceNow** approval; OCP admission (Kyverno/OPA) can enforce “only signed images.”
+* **Observability**: **Dynatrace** captures pipeline & runtime telemetry (surface DORA).
+* **NFR in PREPROD**: performance/security/chaos tests are orchestrated but **execution limited per your policy** (chaos not allowed in PREPROD).
+
+---
+
+## Next Step (proposed)
+
+Proceed to **Step 2: Pipeline Stage Blueprint** — concise, per-branch stage maps with pass/fail gates and rollback signals you can lift straight into the Shared Library.
+
+
+Step 2 — Pipeline Stage Blueprint (Per Branch Type)
+
+Goal: Reusable, minimal Jenkinsfiles that call Shared Library steps. Immutable image promotion, strong gates, fast rollback.
+
+2.1 Feature Branch → CAB (per-commit CI)
+
+Trigger: push to feature/*
+Purpose: fast feedback; build + scan + deploy to CAB + smoke.
+
+flowchart LR
+  A[Commit on feature/*] --> B(Build & Unit Tests)
+  B --> C(SCA: NexusIQ)
+  B --> D(Image Build)
+  D --> E(Image Scan: Aqua)
+  E --> F(SBOM: CycloneDX)
+  F --> G(Sign & Attest: cosign/in-toto)
+  G --> H(Push to Nexus OCI)
+  H --> I(Deploy to CAB)
+  I --> J(Smoke / basic BDD)
+  J --> K{Pass?}
+  K -- Yes --> L(GitHub checks ✓)
+  K -- No --> R1(Rollback CAB) --> L
+
+Inputs: pom.xml, jkube/k8s manifests, Vault creds
+Outputs: JAR, SBOM, signed image (digest), IQ/Aqua reports, GH status
+Gates: Unit ≥ threshold, IQ policy score ≤ 7 (fail on ≥ High), Aqua High fail
+Rollback: oc rollout undo in CAB on smoke fail
+Shared Library API (suggested):
+
+ci.buildMaven()
+
+sec.scanNexusIQ()
+
+container.buildAndScanImage()
+
+sbom.generateCycloneDX()
+
+supplychain.signAndAttest()
+
+ocp.deploy(namespace:'cab')
+
+tests.smoke()
+
+2.2 Develop Merge → DEV → CDTEST → SIT2 (CI/CD)
+
+Trigger: merge to develop
+Purpose: promote digest through lower envs with BDD/E2E gates.
+
+sequenceDiagram
+  participant GH as GitHub (develop)
+  participant J as Jenkins
+  participant N as Nexus (OCI)
+  participant O1 as OCP DEV
+  participant O2 as OCP CDTEST
+  participant O3 as OCP SIT2
+
+
+  GH->>J: Merge event
+  J->>J: Build + Unit + IQ + Aqua + SBOM + Sign
+  J->>N: Push image (immutable digest)
+  J->>O1: Deploy to DEV
+  J->>O1: Run Service BDD
+  alt BDD pass
+    J->>O2: Promote same digest to CDTEST
+    J->>O2: Run E2E Functional (sched/manual)
+    alt E2E pass
+      J->>O3: Promote digest to SIT2
+      J->>O3: Run Integration E2E
+    else E2E fail
+      J->>O2: Rollback to last good
+    end
+  else BDD fail
+    J->>O1: Rollback to last good
+  end
+
+Gates: same security gates + BDD pass (DEV) + E2E pass (CDTEST)
+Rollback: Auto to lastGoodDigest per namespace
+Library:
+
+ocp.promote(from:'dev', to:'cdtest', digest:...)
+
+tests.bdd(service:'X')
+
+tests.e2e()
+
+ocp.rollback(namespace)
+
+2.3 Release Branch → SIT1 → PREPROD → PROD (CD)
+
+Trigger: branch release/* created or updated
+Purpose: controlled RTL path, no rebuilds beyond first release build; approvals.
+
+flowchart LR
+  A[release/* push] --> B(Build once + sign + push)
+  B --> C(Deploy to SIT1)
+  C --> D(Manual Regression by QA)
+  D -->|Pass| E(Promote digest to PREPROD)
+  E --> F(NFR: perf/sec/limited chaos*)
+  F --> G(ServiceNow Change Created/Updated)
+  G --> H{Approved?}
+  H -- Yes --> I(Manual Promote to PROD)
+  I --> J(Post-Deploy Checks + Dynatrace SLOs)
+  J --> K{Healthy?}
+  K -- Yes --> M(Merge release -> main & develop, tag CalVer)
+  K -- No --> R2(Prod Rollback to previous release)
+  H -- No --> Hold[Hold in PREPROD]
+
+Notes: Chaos not allowed in PREPROD by policy; can emulate with fault injection in lower envs.
+Gates: QA sign-off in SIT1, ServiceNow Approval, Dynatrace SLOs green
+Rollback: Manual job with last prod tag/digest; auto update SNOW incident
+Library:
+
+release.prepare() (versioning CalVer, changelog)
+
+ocp.deploy('sit1')
+
+approvals.serviceNow(changeType:'Standard/Normal')
+
+ocp.promote('preprod'), ocp.promote('prod')
+
+ops.healthCheck(dynatraceQuery)
+
+2.4 Hotfix Branch → Fast Path
+
+Trigger: branch hotfix/* from main
+Purpose: expedite fix with identical gates to release, then back-merge.
+
+Flow: Build once → SIT1 regression → PREPROD NFR → ServiceNow approval → PROD → merge back to main and develop + auto PRs.
+Library: hotfix.run() (wraps release flow), bots.autoBackmergeMainToDevelop()
+
+2.5 Cross-Cutting Stage Policies
+
+Timeouts: build/test ≤ 20m (feature), ≤ 45m (develop), ≤ 60m (release)
+
+Retries: network/push stages retry 2× with backoff
+
+Concurrency: env locks per namespace; one deploy at a time to PROD
+
+Immutability: promotion by digest only; no tag-only deploys
+
+Status Checks: GitHub required checks vary by branch (see table)
+
+Required GitHub Checks by Branch
+Branch	Checks
+feature/*	Unit, NexusIQ, Aqua, SBOM, Smoke
+develop	Unit, IQ, Aqua, SBOM, BDD, E2E
+release/*	Unit, IQ, Aqua, SBOM, SIT1 sign-off, SNOW approval
+main (post‑prod)	Tag + merge validation, audit artifact upload
+2.6 Artifacts & Evidence per Run
+
+Build: JAR + test reports
+
+Security: IQ JSON, Aqua report, SBOM (CycloneDX)
+
+Supply Chain: cosign signature + in‑toto provenance
+
+Deploy: manifest snapshot (applied), digest map per env
+
+Observability: Dynatrace deployment marker, SLO eval
+
+Compliance: ServiceNow change/update ID, approver, timestamps
+
+2.7 Minimal Jenkinsfile Templates (Thin)
+@Library('platform-shared-lib@v1') _
+
+
+pipeline {
+  agent { label 'jnlp-ocp' }
+  options { timestamps(); disableConcurrentBuilds() }
+  stages {
+    stage('CI') { steps { ci.featureToCab() } } // auto-detects branch
+  }
+}
+
+Library entrypoints:
+
+ci.featureToCab()
+
+cicd.developToSit2()
+
+cd.releaseToProd()
+
+cd.hotfixFastPath()
+
+2.8 Rollback Signals (Automated)
+
+Smoke/BDD/E2E fail → rollback namespace to lastGoodDigest
+
+Dynatrace SLO breach within T+15m of deploy → rollback and page
+
+Admission policy failure (unsigned image) → block deploy, mark red
+
+
+
