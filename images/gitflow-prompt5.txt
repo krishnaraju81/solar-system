@@ -1,0 +1,391 @@
+Nice, this is where it gets fun 😄
+Let’s design a **tiny `devflow` CLI** that matches *your* GitFlow exactly.
+
+I’ll:
+
+* Define the **commands** developers will run
+* Show **what each command does under the hood** (branches, naming, base)
+* Keep it PR-friendly (no auto-merges, just branch creation + push)
+
+---
+
+## 🧱 Design Principles for `devflow`
+
+* **Developers always work locally with Git**.
+* `devflow` is just a **thin wrapper** around git commands (and optionally `git flow start` if you want).
+* All merging still happens via **GitHub PRs + CI/CD**.
+* It enforces:
+
+  * The **right base branch** (develop / release/x.y / main),
+  * The **right naming** (feature/*, bugfix/*, hotfix/*, release/*).
+
+---
+
+## 🧩 Command 1 — `devflow feature`
+
+**Use for:** new features / normal bugfixes targeting `develop`.
+
+### Usage
+
+```bash
+devflow feature ABC-123 "payment rounding fix"
+```
+
+### What it does
+
+1. Ensures clean working tree.
+
+2. Fetches + updates `develop`:
+
+   ```bash
+   git fetch origin
+   git switch develop
+   git pull origin develop
+   ```
+
+3. Creates a branch:
+
+   ```bash
+   BRANCH="feature/ABC-123-payment-rounding-fix"
+   git switch -c "$BRANCH"
+   ```
+
+4. Pushes and sets upstream:
+
+   ```bash
+   git push -u origin "$BRANCH"
+   ```
+
+5. Prints hint:
+
+   > Open PR with **base = `develop`**.
+   > Jenkins will run the *feature pipeline* (CAB deploy + smoke).
+
+---
+
+## 🐞 Command 2 — `devflow bugfix-release`
+
+**Use for:** bugfixes during **release stabilisation**, branching from `release/x.y`.
+
+### Usage
+
+```bash
+devflow bugfix-release 2.3 "payment rounding issue"
+```
+
+### What it does
+
+1. Ensures clean working tree.
+
+2. Fetches + updates the release branch:
+
+   ```bash
+   git fetch origin
+   git switch "release/2.3"
+   git pull origin "release/2.3"
+   ```
+
+3. Creates bugfix branch:
+
+   ```bash
+   BRANCH="bugfix/2.3-payment-rounding-issue"
+   git switch -c "$BRANCH"
+   ```
+
+4. Pushes:
+
+   ```bash
+   git push -u origin "$BRANCH"
+   ```
+
+5. Prints hint:
+
+   > Open PR with **base = `release/2.3`**.
+   > Jenkins will run the *bugfix-on-release* flow (SIT1/PREPROD subset).
+
+---
+
+## 🔥 Command 3 — `devflow hotfix`
+
+**Use for:** urgent production fixes.
+
+### Usage
+
+```bash
+devflow hotfix 2.3.1 "prod npe on checkout"
+```
+
+You can decide whether it always starts from `main`, or from the last tag `v2.3.0`. I’ll assume **main** with latest prod tag already merged.
+
+### What it does
+
+1. Ensures clean working tree.
+
+2. Updates `main`:
+
+   ```bash
+   git fetch origin
+   git switch main
+   git pull origin main
+   ```
+
+3. Creates hotfix branch:
+
+   ```bash
+   BRANCH="hotfix/2.3.1-prod-npe-on-checkout"
+   git switch -c "$BRANCH"
+   ```
+
+4. Pushes:
+
+   ```bash
+   git push -u origin "$BRANCH"
+   ```
+
+5. Prints hint:
+
+   > Open PR with **base = `main`**.
+   > Jenkins will run the *hotfix pipeline* (SIT1 → PROD with emergency SNOW).
+   > After merge, the bot will back-merge `main` → `develop`.
+
+---
+
+## 🚀 Command 4 — `devflow release`
+
+**Use for:** cutting a new release branch from `develop`.
+
+### Usage
+
+```bash
+devflow release 2.3
+```
+
+### What it does
+
+1. Ensures clean working tree.
+
+2. Updates `develop`:
+
+   ```bash
+   git fetch origin
+   git switch develop
+   git pull origin develop
+   ```
+
+3. Creates release branch:
+
+   ```bash
+   BRANCH="release/2.3"
+   git switch -c "$BRANCH"
+   ```
+
+4. Pushes:
+
+   ```bash
+   git push -u origin "$BRANCH"
+   ```
+
+5. Prints hint:
+
+   > Release branch `release/2.3` created.
+   > Only **bugfix-release** and docs allowed now (feature freeze).
+   > Jenkins will run the *release pipeline* (SIT1 → PREPROD → PROD).
+
+Merges (release → main & release → develop) and tagging are handled by:
+
+* PRs + pipelines
+* Or an autobot after successful PROD deployment.
+
+---
+
+## 🔁 Command 5 — `devflow backport` (optional)
+
+**Use for:** backporting a merged `develop` or `main` PR into a **release branch**.
+
+In your design you may already use an **auto-backport bot** driven by labels.
+If you still want a CLI for manual cases:
+
+### Usage
+
+```bash
+devflow backport 2.3 <commit-or-PR>
+```
+
+Conceptually:
+
+1. Checks out `release/2.3`.
+
+2. Cherry-picks the indicated commit.
+
+3. Creates a branch like:
+
+   ```bash
+   bugfix/2.3-backport-ABC-123
+   ```
+
+4. Pushes and prints:
+
+   > Open PR base = `release/2.3`.
+   > This is a backport of commit `<sha>` (PR #123).
+
+If you fully invest in an **auto-backport bot + labels**, `devflow backport` becomes “nice-to-have”.
+
+---
+
+## 📋 Command 6 — `devflow help` / `devflow status` (nice-to-have)
+
+* `devflow help`
+
+  * Lists all available commands and short usage.
+* `devflow status`
+
+  * Shows:
+
+    * current branch
+    * tracking branch
+    * detected workflow (feature / bugfix-release / hotfix / release)
+    * base branch it *should* PR into.
+
+---
+
+## 🧪 Implementation Sketch (Bash)
+
+Very rough sketch to show you how simple it can be:
+
+```bash
+#!/usr/bin/env bash
+set -e
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+
+ensure_clean() {
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    die "Working tree not clean. Commit or stash before running devflow."
+  fi
+}
+
+slug() {
+  echo "$1" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9\-'
+}
+
+cmd="$1"; shift || true
+
+case "$cmd" in
+  feature)
+    TICKET="$1"; shift || die "Usage: devflow feature <ticket> \"description\""
+    DESC="$(slug "$*")"
+    BRANCH="feature/${TICKET}-${DESC}"
+
+    ensure_clean
+    git fetch origin
+    git switch develop
+    git pull origin develop
+    git switch -c "$BRANCH"
+    git push -u origin "$BRANCH"
+
+    echo "Created $BRANCH from develop."
+    echo "Open PR with base = develop."
+    ;;
+
+  bugfix-release)
+    VERSION="$1"; shift || die "Usage: devflow bugfix-release <version> \"description\""
+    DESC="$(slug "$*")"
+    BRANCH="bugfix/${VERSION}-${DESC}"
+    RELEASE="release/${VERSION}"
+
+    ensure_clean
+    git fetch origin
+    git switch "$RELEASE"
+    git pull origin "$RELEASE"
+    git switch -c "$BRANCH"
+    git push -u origin "$BRANCH"
+
+    echo "Created $BRANCH from $RELEASE."
+    echo "Open PR with base = $RELEASE."
+    ;;
+
+  hotfix)
+    VERSION="$1"; shift || die "Usage: devflow hotfix <version> \"description\""
+    DESC="$(slug "$*")"
+    BRANCH="hotfix/${VERSION}-${DESC}"
+
+    ensure_clean
+    git fetch origin
+    git switch main
+    git pull origin main
+    git switch -c "$BRANCH"
+    git push -u origin "$BRANCH"
+
+    echo "Created $BRANCH from main."
+    echo "Open PR with base = main."
+    ;;
+
+  release)
+    VERSION="$1" || die "Usage: devflow release <version>"
+    BRANCH="release/${VERSION}"
+
+    ensure_clean
+    git fetch origin
+    git switch develop
+    git pull origin develop
+    git switch -c "$BRANCH"
+    git push -u origin "$BRANCH"
+
+    echo "Created $BRANCH from develop."
+    echo "Release freeze now applies. Only bugfix-release + docs."
+    ;;
+
+  *)
+    echo "devflow <command> ..."
+    echo
+    echo "Commands:"
+    echo "  feature <ticket> \"desc\"        - create feature/* from develop"
+    echo "  bugfix-release <ver> \"desc\"    - create bugfix/* from release/<ver>"
+    echo "  hotfix <ver> \"desc\"            - create hotfix/* from main"
+    echo "  release <ver>                    - create release/<ver> from develop"
+    exit 1
+    ;;
+esac
+```
+
+You’d refine this, add validation, maybe hook into Jira, etc., but this gives you the core mapping.
+
+---
+
+## ✅ Recap
+
+Your workflow → `devflow`:
+
+* **Feature** → `devflow feature <ticket> "desc"`
+  → `feature/<ticket>-<desc>` from `develop`
+* **Bugfix-on-release** → `devflow bugfix-release <version> "desc"`
+  → `bugfix/<version>-<desc>` from `release/x.y`
+* **Hotfix** → `devflow hotfix <version> "desc"`
+  → `hotfix/<version>-<desc>` from `main`
+* **Release cut** → `devflow release <version>`
+  → `release/<version>` from `develop`
+
+If you want, next I can:
+
+* Turn this into a **Confluence page** (“How to use devflow”), or
+* Add **Jira ticket auto-linking** logic (e.g. ensure `ABC-123` is always present in branch name and PR title).
+
+
+dev-toolkit rename kubecli tool and create a separate repository.
+
+create the shared library versioning for jenkins library, so that microservies always picks
+the latest version of shared library, which makes it easier to revert changes to the shared library
+without reverting fixes to it.
+
+For gitflow strategy for now we will levarage the existing ci/cd pipelines to work for the gitflow branches
+
+
+Shiftleft
+---------
+
+rework the existing pipelines to reflect the shift left strategy
+Always aim to deploy the application in 10 minutes
+Maximize the use of parallel stages to reduce the deployment time
+
+
+

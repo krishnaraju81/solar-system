@@ -1,0 +1,242 @@
+
+# 🧩 Unified Prompt — GitFlow CI/CD Modernization (Jenkins + OCP + Nexus)
+
+We want to design and implement a **strict GitFlow-based CI/CD pipeline** for our workloads using **Jenkins Shared Libraries**, aligned with industry best practices and minimizing developer cognitive overhead through automation.
+
+---
+
+## 0️⃣ Current Stack (verify or adjust)
+
+| Component                     | Technology / Tool                                       |
+| ----------------------------- | ------------------------------------------------------- |
+| Language & build              | Java + Maven                                            |
+| CI/CD Orchestrator            | Jenkins                                                 |
+| SCM                           | GitHub                                                  |
+| Artifact Registry             | Nexus                                                   |
+| Docker Image Registry         | Nexus (internal)                                        |
+| Software Composition Analysis | NexusIQ                                                 |
+| Image Scanning                | Aqua                                                    |
+| Platform                      | OpenShift (OCP) for SIT, PREPROD, PROD                  |
+| Rancher Namespaces            | CAB, DEV, CDTEST                                        |
+| Lower env flow                | CAB → DEV → CDTEST → SIT2                               |
+| Higher env flow               | SIT1 → PREPROD → PROD                                   |
+| Change Management             | ServiceNow                                              |
+| Branch Model                  | GitFlow (main, develop, feature/*, release/*, hotfix/*) |
+
+---
+
+## 1️⃣ Vision & Workflow Narrative (confirm/expand)
+
+We will enforce **GitFlow branching discipline** with automated CI/CD for every branch type.
+
+* Developers branch from `develop` to create `feature/*`.
+  Each commit triggers a CI pipeline that:
+
+  1. Builds and tests code
+  2. Runs NexusIQ and Aqua scans
+  3. Pushes the image to Nexus Docker registry
+  4. Deploys to **CAB**
+  5. Runs smoke/BDD tests
+  6. Reports back via GitHub status checks
+
+* Once merged into `develop`, a **develop-CI/CD** pipeline:
+
+  1. Builds and deploys to **DEV**
+  2. Runs service-level BDD (rollback on failure)
+  3. Deploys to **CDTEST**
+  4. Runs scheduled + on-demand E2E functional tests
+  5. Promotes successful images to **SIT2** for E2E integration
+
+* **Release branches** are created from `develop`, deployed through:
+
+  1. SIT1 (manual regression tests)
+  2. PREPROD (non-functional tests)
+  3. PROD (via ServiceNow approval)
+     After successful release, the branch merges into `main` and `develop`.
+
+* **Hotfixes** follow the same flow as releases but originate from `main`.
+
+---
+
+## 2️⃣ Repository & Branching Governance
+
+1. Number of repositories / microservices involved?  120 microservices
+2. Mono-repo or multi-repo structure? multi-repo
+3. Shared parent POMs or BOMs? Location? yes, maven parent pom is been used in every service
+4. Branch protections on `main` / `develop`? yes
+5. Branch naming rules (feature/ bugfix/, chore/, hotfix/)? yes
+6. Do you want automation bots for:
+
+   * Auto-merge `main` → `develop` after hotfix? yes
+   * Auto PR sync between long-lived branches? yes
+   * Changelog / tag automation ? yes
+
+---
+
+## 3️⃣ Build & Artifact Policy
+
+1. Java version matrix? all microservices uses same java version
+2. Caching strategy (Maven repo cache, Docker layers)? yes
+3. Image tagging convention (`app:gitsha`, `app:semver`, etc.)? app:gitsha
+4. SBOM requirement (CycloneDX/SPDX)? CycloneDX
+5. Artifact retention in Nexus (snapshots, releases)? yes
+
+---
+
+## 4️⃣ Security Gates & Scanning
+
+1. NexusIQ thresholds (fail on High/Critical?) 7
+2. Aqua scan thresholds (Critical/High)? High
+3. Base image policy (distroless, rootless, pinned digest)? distroless
+4. Secrets management (Vault, ESO, SealedSecrets)? HCV Vault
+5. Image signing / attestation needed (cosign, in-toto, SLSA)? cosign + in-toto
+
+---
+
+## 5️⃣ Testing Strategy
+
+| Stage          | Environment | Test Type                       | Tool | Automated? | Rollback? |
+| -------------- | ----------- | ------------------------------- | ---- | ---------- | --------- |
+| Unit           | CAB         | Maven Surefire                  |      | ✅          | ❌        |
+| BDD            | DEV         | Cucumber                                |      | ✅          | ✅        |
+| E2E Functional | CDTEST      | cucumber                                |      | ✅          | ✅        |
+| Integration    | SIT2        | cucumber                                |      | ✅          | ✅        |
+| Regression     | SIT1        | manual now |      | 🚧          | 🚧        |
+| Non-Functional | PREPROD     | Perf / Security / Chaos         |      | Partial     | ❌        |
+
+Please fill in preferred tools (JUnit, Karate, Playwright, etc.) and automation goals.
+
+---
+
+## 6️⃣ Deployment Strategy (OCP/Rancher)
+
+1. Use Helm, Kustomize, or raw YAML? jkube, kubectl
+2. Env-specific values strategy (overlays / GitOps repos / Jenkins params)? jkube + mvn resources
+3. Deployment type (Rolling, Blue-Green, Canary)? Rolling
+4. Rollback trigger conditions? if pod doesn't come update
+5. Promotion policy — immutable image digest, single artifact flow? 
+6. Approval gates — who approves CAB→DEV→CDTEST→SIT2, SIT1→PREPROD→PROD? automatic, manual
+
+---
+
+## 7️⃣ Jenkins Architecture
+
+1. Agent setup (OCP JNLP pods vs static nodes)? rancher JNLP pods
+2. Shared library structure (vars/, src/, resources/)? all 3
+3. Pipelines needed:
+
+   * Feature → CAB
+   * Develop → DEV → CDTEST → SIT2
+   * Release → SIT1 → PREPROD → PROD
+   * Hotfix → fast-track
+4. Credential management (GitHub App, Nexus, IQ, Aqua, OCP tokens)? jenkins secrets fetched from hcv vault
+5. Observability (OpenTelemetry, ELK, Splunk)? Dynatrace
+6. Caching and parallelism policy? yes
+
+---
+
+## 8️⃣ GitHub Integration
+
+1. Required status checks before merge? yes
+2. CODEOWNERS / mandatory reviewers?  yes, 1 review
+3. Auto-labelers or branch naming enforcement? yes
+4. Dependabot/Renovate usage? yes
+
+---
+
+## 9️⃣ Release & Promotion Management
+
+1. Release cadence (per sprint / ad-hoc)? adhoc for about 6-8 weeks
+2. Versioning model (SemVer / CalVer)? CalVer
+3. Release notes automation required? yes
+4. ServiceNow integration (auto create/update change)? yes
+5. Freeze window or CAB approval model? yes
+
+---
+
+## 🔟 Regression Automation Plan (SIT1)
+
+1. Which tool should we adopt (Cypress, Playwright, Karate, Robot)?  not decided, manual
+2. Where to host regression code (central repo / each service)? central repo
+3. Test data strategy (seed, reset, mask)? reset
+4. Reporting and dashboards (Grafana, Allure, Jenkins HTML)? jenkins html
+
+---
+
+## 1️⃣1️⃣ Non-Functional Testing (PREPROD)
+
+1. Performance testing tool (k6 / Gatling / JMeter)?
+2. Security DAST/SAST extensions beyond IQ/Aqua? also gitleaks and trufflehog, opa, kyverno
+3. Chaos or resilience tests (Litmus, kube-monkey)? litmus
+4. Are such tests allowed in PREPROD? no
+
+---
+
+## 1️⃣2️⃣ Observability & DORA Metrics
+
+1. Current monitoring stack (Prometheus, Grafana, ELK)? Dynatrace
+2. DORA metrics tracking (lead time, deployment freq, MTTR, change fail rate)? yes, all
+3. ChatOps notifications (Slack/Teams)? Channels & format? Teams
+
+---
+
+## 1️⃣3️⃣ Rollout & Change Plan
+
+1. Number of services to onboard in first wave? couple
+2. Rollout model (big-bang vs incremental)? incremental
+3. Cutover criteria & rollback plan?  phased, rollback plan using best practices
+4. Developer enablement — docs, brown-bags, cheat-sheets, videos? confluence, cheatsheets, videos
+
+---
+
+## 1️⃣4️⃣ Deliverables Expected from ChatGPT (Me)
+
+You want me to produce:
+
+* A complete **GitFlow CI/CD blueprint**, including:
+
+  * Architecture diagrams
+  * Jenkins Shared Library design
+  * Branch-specific pipeline YAML/Groovy templates
+  * Promotion & rollback logic
+  * NexusIQ & Aqua integration
+  * Regression automation framework
+  * ServiceNow approval integration
+  * Observability dashboards
+* A detailed **project plan** with task breakdown, dependencies, and **time estimates** by workstream:
+
+  * Shared library development
+  * Pipeline templates
+  * Test automation
+  * Security integrations
+  * Documentation and rollout
+* Recommendations to streamline developer workflow:
+
+  * Auto-merge and tagging bots
+  * Changelog generation
+  * Branch protection rules
+  * PR quality checks
+
+---
+
+## 1️⃣5️⃣ Timelines & Resources
+
+1. Target go-live or sprint window for MVP? as soon as possible
+2. Resource availability (FTEs / DevOps engineers / testers)?2, 2, 2
+3. Preferred estimation unit (story points / days)? days and story points
+4. Any blackout or change-freeze periods? no
+
+---
+
+## ✅ Final Goal
+
+Deliver a **frictionless, fully traceable CI/CD system** where:
+
+* Every commit builds, scans, tests, and deploys automatically.
+* Every merge follows a predictable promotion pipeline.
+* Every environment uses immutable, auditable artifacts.
+* Developers focus on delivering code — not managing Jenkinsfiles.
+
+---
+
+Would you like me to automatically generate a **ready-to-execute implementation plan and timeline** once you fill this prompt (including milestones, estimates, and architecture diagrams)? yes, but ask, generate one at a time, sufficient answer, not to overwhelm and we will continue

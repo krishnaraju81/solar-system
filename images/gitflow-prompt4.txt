@@ -1,0 +1,359 @@
+Here you go — **the same content rewritten cleanly as FEATURES → STORIES → SUB-TASKS**, ready for Jira/ADO/VersionOne.
+
+I’ve kept wording crisp, implementation-ready, and grouped logically.
+
+---
+
+# 🟪 **FEATURE 1 — GitFlow Branching Model Adoption**
+
+## **Story 1.1 — Define Branching Standards**
+
+**Subtasks:**
+
+* Document branch types & naming (`feature/*`, `bugfix/*`, `release/x.y`, `hotfix/x.y.z`, etc.)
+* Publish GitFlow diagram (from draw.io)
+* Share cheat sheet with teams
+
+## **Story 1.2 — Configure GitHub Branch Protections**
+
+**Subtasks:**
+
+* Add protection to `main`
+* Add protection to `develop`
+* Add protection to `release/*`
+* Configure required status checks
+* Disable direct pushes
+
+## **Story 1.3 — Create PR Templates & Labels**
+
+**Subtasks:**
+
+* Feature/Bugfix PR template
+* Release PR template
+* Hotfix PR template
+* Backport PR template
+* Create labels: `auto-merge`, `auto-backport:*`, `bugfix`, `hotfix`, `bot`, `needs-human`
+
+## **Story 1.4 — Developer Workflow Cheat Sheet**
+
+**Subtasks:**
+
+* Create 1-page developer flow
+* Add examples for each branch type
+* Share with teams & store in Confluence
+
+---
+
+# 🟦 **FEATURE 2 — Jenkins Shared Library (Core Pipeline Engine)**
+
+## **Story 2.1 — Implement Pipeline Skeleton**
+
+**Subtasks:**
+
+* Create `ciPipeline` entrypoint
+* Build `PipelineFactory`
+* Add default `.ci/pipeline.yml` loader
+
+## **Story 2.2 — Build & Test Stages**
+
+**Subtasks:**
+
+* Checkout stage
+* Maven build stage
+* Unit test reporting
+* Coverage publishing
+
+## **Story 2.3 — Security Stages**
+
+**Subtasks:**
+
+* Integrate gitleaks
+* Integrate trufflehog
+* NexusIQ policy scan
+* Aqua image scan
+
+## **Story 2.4 — Image Build + Signing**
+
+**Subtasks:**
+
+* jkube build & push
+* Digest tagging
+* cosign signing
+* in-toto attestation
+
+## **Story 2.5 — Deployment Framework**
+
+**Subtasks:**
+
+* Generic deploy stage (env param)
+* Support CAB/DEV/CDTEST/SIT2/SIT1/PREPROD/PROD
+* Rollback using previous digest
+
+## **Story 2.6 — Test Stage Integration**
+
+**Subtasks:**
+
+* BDD runner integration
+* E2E runner integration
+* Integration test runner integration
+
+---
+
+# 🟩 **FEATURE 3 — Feature & Bugfix Flow (Develop Integration)**
+
+## **Story 3.1 — Implement FeaturePipeline**
+
+**Subtasks:**
+
+* Detect `feature/*` and `fix/*`
+* Build + scans + sign
+* CAB deploy
+* CAB smoke/BDD tests
+* GitHub status check integration
+
+## **Story 3.2 — Configure Develop PR Checks**
+
+**Subtasks:**
+
+* Require CI green for develop PRs
+* Enforce review rule
+* Block direct pushes
+
+## **Story 3.3 — Migrate Pilot Service to Feature Flow**
+
+**Subtasks:**
+
+* Replace old Jenkinsfile
+* Add `.ci/pipeline.yml` if needed
+* Validate full CAB flow end-to-end
+
+---
+
+# 🟧 **FEATURE 4 — Release Pipeline (release/x.y)**
+
+## **Story 4.1 — Implement ReleasePipeline**
+
+**Subtasks:**
+
+* Detect `release/x.y`
+* Build once
+* Promote digest to SIT1
+* Promote digest to PREPROD
+* Promote digest to PROD
+
+## **Story 4.2 — SIT1 Manual Regression Stage**
+
+**Subtasks:**
+
+* Implement approval gate
+* Add optional Teams trigger
+* Retry/rollback logic
+
+## **Story 4.3 — PREPROD Non-Functional Tests**
+
+**Subtasks:**
+
+* Hook performance tool (k6/JMeter)
+* Hook security DAST
+* Include smoke-only fallback mode
+
+## **Story 4.4 — ServiceNow Change Integration**
+
+**Subtasks:**
+
+* Create change from pipeline
+* Poll for approval
+* Update SNOW record after PROD deployment
+
+## **Story 4.5 — Tagging & Merge Automation**
+
+**Subtasks:**
+
+* Auto-tag `vX.Y.Z`
+* Merge release → main
+* Merge release → develop
+* Handle merge conflicts automatically where possible
+
+## **Story 4.6 — Release Playbook**
+
+**Subtasks:**
+
+* Document release process
+* Include screenshot walkthrough
+* Publish to Confluence
+
+---
+
+# 🟥 **FEATURE 5 — Hotfix Pipeline (hotfix/x.y.z)**
+
+## **Story 5.1 — Implement HotfixPipeline**
+
+**Subtasks:**
+
+* Detect `hotfix/x.y.z`
+* Build + scan + sign
+* Deploy to SIT1
+* Deploy to PROD via emergency SNOW
+
+## **Story 5.2 — Hotfix Tagging**
+
+**Subtasks:**
+
+* Tag version `vX.Y.Z`
+* Push tag to GitHub
+
+## **Story 5.3 — Auto-Backmerge Hotfix to Develop**
+
+**Subtasks:**
+
+* Bot creates PR from main → develop
+* Label `auto-merge`
+* Auto-merge once CI green
+
+## **Story 5.4 — Hotfix Documentation**
+
+**Subtasks:**
+
+* How to start a hotfix
+* How to deploy
+* How auto-merge backflow works
+
+---
+
+# 🟨 **FEATURE 6 — Bugfix-on-Release Flow**
+
+## **Story 6.1 — Define Bugfix-on-Release Branch Pattern**
+
+**Subtasks:**
+
+* Branch naming: `bugfix/<release-version>-desc`
+* Document branching rules
+
+## **Story 6.2 — CI/CD for Bugfix-on-Release**
+
+**Subtasks:**
+
+* Use ReleasePipeline subset
+* Trigger SIT1 tests automatically after merge
+* Automated smoke tests in PREPROD (optional)
+
+## **Story 6.3 — Continual Stabilisation of release/x.y**
+
+**Subtasks:**
+
+* Re-run SIT1-on-merge
+* Optional PREPROD smoke
+* Mark release readiness
+
+## **Story 6.4 — Documentation**
+
+**Subtasks:**
+
+* Create “how to fix bugs in a release” page
+* Examples of bugfix branches
+* Expected test flow
+
+---
+
+# 🟫 **FEATURE 7 — Backports & Bot Automation**
+
+## **Story 7.1 — Backport Labeling Convention**
+
+**Subtasks:**
+
+* Define labels: `auto-backport:release/x.y`
+* Add label docs to developer guide
+
+## **Story 7.2 — Backport Bot Implementation**
+
+**Subtasks:**
+
+* Detect merged PR with backport label
+* Cherry-pick commit to release/x.y
+* Create backport PR
+* Apply `auto-merge` label
+
+## **Story 7.3 — Auto-Rebase / Auto-Heal Bot PRs**
+
+**Subtasks:**
+
+* Auto-rebase if behind base branch
+* Push update to PR
+* Detect conflicts → mark Draft
+* Re-enable auto-merge when safe
+
+## **Story 7.4 — Bot Authentication Setup**
+
+**Subtasks:**
+
+* Create GitHub App / bot user
+* Configure permissions
+* Store token in Jenkins Vault
+
+---
+
+# 🟦 **FEATURE 8 — Service Migration & Rollout**
+
+## **Story 8.1 — Migration Checklist Template**
+
+**Subtasks:**
+
+* Create checklist for each repo
+* Include pipeline, Jenkinsfile, config, test readiness
+
+## **Story 8.2 — Pilot Service Migration**
+
+**Subtasks:**
+
+* Migrate service 1
+* Migrate service 2
+* Validate develop → release → main flow
+
+## **Story 8.3 — Wave 1 Migration (10–20 services)**
+
+**Subtasks:**
+
+* Apply shared lib
+* Update Jenkinsfiles
+* Validate pipelines
+
+## **Story 8.4 — Wave 2+ Migration (remaining 100+ services)**
+
+**Subtasks:**
+
+* Automate repo updates where possible
+* Spot-check env promotions
+* Enable auto-merge for bot PR flows
+
+## **Story 8.5 — Final Audit & Shutdown of Old Pipelines**
+
+**Subtasks:**
+
+* Identify unused trunk-based jobs
+* Disable/remove deprecated Jenkins jobs
+* Clean up legacy scripts
+
+---
+
+# ✅ Ready for Jira import?
+
+I can generate the above in:
+
+* **Jira CSV import format**
+* **Azure DevOps YAML bulk import format**
+* **Markdown table / Word doc format**
+* **With estimates + acceptance criteria**
+
+Just tell me:
+
+**“Generate Jira CSV”**
+or
+**“Add acceptance criteria + estimates”**
+
+
+develop Small “devflow” CLI wrapper
+
+devflow feature ABC-123 "short summary"
+devflow bugfix-release 2.3 "payment rounding bug"
+devflow hotfix 2.3.1 "prod NPE fix"
+devflow release 2.3
